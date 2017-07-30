@@ -3,6 +3,7 @@ import os
 from flask import Flask, jsonify
 from flask_restful import Api
 
+from api.views.articles_by_topic import ArticlesByTopicResource
 from config import app_configuration
 
 
@@ -15,6 +16,11 @@ def create_flask_app(environment):
     @app.route('/')
     def index():
         return jsonify({"message": "Welcome to the Punch Nigeria Api"})
+
+    # create endpoints
+    api = Api(app)
+    api.add_resource(ArticlesByTopicResource, '/api/v1/articles',
+                     endpoint='articles_by_topic')
 
     # handle default 404 exceptions with a custom response
     @app.errorhandler(404)
