@@ -49,14 +49,14 @@ class ArticlesByTopicResource(Resource):
             url = 'http://punchng.com/topics/%s' % (topic.lower())
         get_request = requests.get(url)
         data = get_request.text
-        soup = BeautifulSoup(data)
+        soup = BeautifulSoup(data, "html.parser")
 
         articles = soup.findAll("div", class_="items col-sm-12")
 
         response_array = []
 
         for article in articles:
-            aritcle = BeautifulSoup(article.text)
+            aritcle = BeautifulSoup(article.text, "html.parser")
 
             fetch_published_date = article.find("span", class_="pull-right")
             fetch_title = article.find("h2", class_="seg-title")
