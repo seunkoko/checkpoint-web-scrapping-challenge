@@ -4,6 +4,7 @@ from flask import Flask, jsonify
 from flask_restful import Api
 
 from api.views.articles_by_topic import ArticlesByTopicResource
+from api.views.get_topics import GetTopicsResource
 from config import app_configuration
 
 
@@ -21,6 +22,8 @@ def create_flask_app(environment):
     api = Api(app)
     api.add_resource(ArticlesByTopicResource, '/api/v1/articles',
                      endpoint='articles_by_topic')
+    api.add_resource(GetTopicsResource, '/api/v1/topics',
+                     endpoint='get_topics')
 
     # handle default 404 exceptions with a custom response
     @app.errorhandler(404)

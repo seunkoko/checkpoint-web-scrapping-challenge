@@ -1,7 +1,7 @@
 import requests
 
 from bs4 import BeautifulSoup
-from flask import request, jsonify
+from flask import request
 from flask_restful import Resource
 
 
@@ -17,7 +17,7 @@ class ArticlesByTopicResource(Resource):
 
         topics = ["news", "sports", 'metro plus', "politics", "business",
                   "entertainment", "opinion", "editorial", "columnists",
-                  "jobs"]
+                  "jobs", "airtime plus"]
 
         if "topic" not in request.args:
             return {
