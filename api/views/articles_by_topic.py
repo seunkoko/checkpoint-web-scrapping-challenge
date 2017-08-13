@@ -1,8 +1,13 @@
-import requests
-
-from bs4 import BeautifulSoup
 from flask import request
 from flask_restful import Resource
+
+from api.helpers.scrape_data import ScrapeData
+from api.helpers.get_articles import GetArticles
+from api.helpers.utils import Utils
+
+scrape_data = ScrapeData()
+get_articles = GetArticles()
+utils = Utils()
 
 
 class ArticlesByTopicResource(Resource):
@@ -16,52 +21,12 @@ class ArticlesByTopicResource(Resource):
         To fetch articles for a topic and search for articles
         """
 
-        if "topic" in request.args:
-            # expected topics
-            topics = ["news", "sports", 'metro plus', "politics", "business",
-                  "entertainment", "opinion", "editorial", "columnists",
-                  "jobs", "airtime plus"]
+        URL = 'http://punchng.com'
 
-            # checks if the topic is valid
-            if request.args["topic"].lower() not in topics:
-                return {
-                "error": "Invalid topic",
-                "message": "The topic name is invalid, check available "
-                           "topics (api/v1/topics)"
-            }, 400
-
-            # replaces empty space in topic by '-'
-            if ' ' in request.args["topic"]:
-                topic = request.args["topic"].replace(' ', '-')
-            else:
-                topic = request.args["topic"]
-            
-            # checks if page number is specified in the url
-            if "page" in request.args:
-                page_number = request.args["page"]
-
-                if page_number == "1":
-                    url = 'http://punchng.com/topics/%s' % (topic.lower())
-                else:
-                    url = 'http://punchng.com/topics/%s/page/%s'% (topic.lower()
-                        , page_number)
-            else:
-                url = 'http://punchng.com/topics/%s' % (topic.lower())
-        elif "q" in request.args:
-            search_query = request.args["q"]
-
-            # checks if page number is specified in the url
-            if "page" in request.args:
-                page_number = request.args["page"]
-
-                if page_number == "1":
-                    url = 'http://punchng.com/?s=%s' % (search_query)
-                else:
-                    url = 'http://punchng.com/page/%s/?s=%s'% (page_number
-                        , search_query)
-            else:
-                url = 'http://punchng.com/?s=%s' % (search_query)
-        else:
+        # checks if the request does not contain topic, query or date
+        if ("topic" not in request.args) and (
+            "q" not in request.args) and (
+            "date") not in request.args:
             return {
                 "error": "Invalid url",
                 "message": "No topic or query specified in the url "
@@ -69,47 +34,69 @@ class ArticlesByTopicResource(Resource):
                            "(api/v1/articles?q=<query>)"
             }, 400
 
-        get_request = requests.get(url)
-        data = get_request.text
-        soup = BeautifulSoup(data, "html.parser")
+        # handles when the request has parameter topic
+        if "topic" in request.args:
+            # expected topics
+            topics = ["news", "sports", 'metro plus', "politics", "business",
+                      "entertainment", "opinion", "editorial", "columnists",
+                      "jobs", "airtime plus"]
+
+            # checks if the topic is valid
+            if request.args["topic"].lower() not in topics:
+                return {
+                    "error": "Invalid topic",
+                    "message": "The topic name is invalid, check available "
+                               "topics (api/v1/topics)"
+                }, 400
+
+            # replaces empty space in topic by '-'
+            if ' ' in request.args["topic"]:
+                topic = request.args["topic"].replace(' ', '-')
+            else:
+                topic = request.args["topic"]
+
+            # handles when there is date in the request parameter
+            if "date" in request.args:
+                URL = '{}/topics/{}'.format(URL, topic.lower())
+                max_page_number = utils.get_max_page_number(URL)
+                converted_date = utils.convert_date(request.args["date"])
+                return {"message": request.args["date"],
+                        "max_number": max_page_number}
+
+            # checks if page number is specified in the url
+            if "page" in request.args:
+                page_number = request.args["page"]
+
+                if page_number == "1":
+                    URL = '{}/topics/{}'.format(URL, topic.lower())
+                else:
+                    URL = '{}/topics/{}/page/{}'.format(
+                        URL, topic.lower(), page_number)
+            else:
+                URL = '{}/topics/{}'.format(URL, topic.lower())
+
+        # handles when the request has parameter q (query)
+        if "q" in request.args:
+            search_query = request.args["q"]
+
+            # checks if page number is specified in the url
+            if "page" in request.args:
+                page_number = request.args["page"]
+
+                if page_number == "1":
+                    URL = '{}/?s={}'.format(URL, search_query)
+                else:
+                    URL = '{}/page/{}/?s={}'.format(URL, page_number
+                        , search_query)
+            else:
+                URL = '{}/?s={}'.format(URL, search_query)
+
+        data = scrape_data.make_url_request(URL)
+        soup = scrape_data.get_soup(data)
 
         articles = soup.findAll("div", class_="items col-sm-12")
 
-        response_array = []
-
-        for article in articles:
-            # print(article)
-            aritcle = BeautifulSoup(article.text, "html.parser")
-
-            if "topic" in request.args:
-                fetch_published_date = article.find(
-                                        "span", class_="pull-right")
-                published_date = fetch_published_date.contents[0]
-            else:
-                fetch_published_date = article.find("div", class_="seg-time")
-                published_date = fetch_published_date.contents[0].replace(
-                                 '\t', '').replace('\r', '').replace('\n', '')
-            
-            fetch_title = article.find("h2", class_="seg-title")
-            fetch_content = article.find("div",
-                            class_="seg-summary").find("p")
-            fetch_url = article.find('a')
-            fetch_url_to_image = article.find("div", class_="blurry")
-
-            title = fetch_title.contents[0]
-            content = fetch_content.contents[0]
-            url = fetch_url.get('href')
-            url_to_image = fetch_url_to_image.get('style').split("'")[1]
-
-            data = {
-                "published_date": published_date,
-                "title": title,
-                "content": content,
-                "url": url,
-                "url_to_image": url_to_image
-            }
-
-            response_array.append(data)
+        response_array = get_articles.get_all_articles(articles, request.args)
 
         if len(response_array) == 0:
             response_string = "No data available on that page"

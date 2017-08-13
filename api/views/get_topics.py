@@ -1,7 +1,8 @@
-import requests
-
-from bs4 import BeautifulSoup
 from flask_restful import Resource
+
+from api.helpers.scrape_data import ScrapeData
+
+scrape_data = ScrapeData()
 
 class GetTopicsResource(Resource):
     """
@@ -13,10 +14,9 @@ class GetTopicsResource(Resource):
         To fetch topics
         """
 
-        url = 'http://punchng.com/'
-        get_request = requests.get(url)
-        data = get_request.text
-        soup = BeautifulSoup(data, "html.parser")
+        URL = 'http://punchng.com/'
+        data = scrape_data.make_url_request(URL)
+        soup = scrape_data.get_soup(data)
 
         topics = soup.find("ul", id="primary-menu"
                           ).findAll("li", class_="menu-item-type-taxonomy")
@@ -24,7 +24,7 @@ class GetTopicsResource(Resource):
         response_array = []
 
         for topic in topics:
-            topic_details = BeautifulSoup(topic.text, "html.parser")
+            topic_details = scrape_data.get_soup(topic.text)
             topic_url = topic.contents[0].get('href')
             topic_name = topic_details.contents[0]
 

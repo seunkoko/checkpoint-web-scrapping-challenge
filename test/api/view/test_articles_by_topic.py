@@ -70,7 +70,7 @@ class ArticlesByTopicTestCase(BaseTestCase):
         Tests appropriate response when query is valid
         """
 
-        res = self.client.get('/api/v1/articles?q=eye')
+        res = self.client.get('/api/v1/articles?q=news')
         generated_response = json.loads(res.data)
         generated_content = generated_response["data"][0]
 
@@ -87,8 +87,8 @@ class ArticlesByTopicTestCase(BaseTestCase):
         Tests when page number is supplied as a parameter
         """
 
-        res_topic = self.client.get('/api/v1/articles?topic=news&page=3')
-        res_query = self.client.get('/api/v1/articles?q=eye&page=3')
+        res_topic = self.client.get('/api/v1/articles?topic=news&page=2')
+        res_query = self.client.get('/api/v1/articles?q=news&page=3')
         generated_response_topic = json.loads(res_topic.data)
         generated_content_topic = generated_response_topic["data"][0]
         generated_response_query = json.loads(res_query.data)
