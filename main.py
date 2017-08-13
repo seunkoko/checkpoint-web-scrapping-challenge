@@ -57,4 +57,5 @@ app = create_flask_app(os.getenv("FLASK_CONFIG"))
 if __name__ == "__main__":
     environment = os.getenv("FLASK_CONFIG")
     app = create_flask_app(environment)
-    app.run()
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
